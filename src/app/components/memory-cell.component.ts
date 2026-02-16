@@ -1,6 +1,6 @@
-import { Component, input, output, ChangeDetectionStrategy } from '@angular/core';
-import { StatsService } from '../services/stats.service';
+import { Component, input, output, ChangeDetectionStrategy, computed } from '@angular/core';
 import { inject } from '@angular/core';
+import { StatsService } from '../services/stats.service';
 import { CellIndicatorComponent } from './cell-indicator.component';
 import { FormatBytePipe } from '../pipes/format-byte.pipe';
 
@@ -15,18 +15,18 @@ import { FormatBytePipe } from '../pipes/format-byte.pipe';
   template: `
     <div
       class="memory-cell"
-      [style.backgroundColor]="getHexColor()"
-      [style.borderColor]="getBorderColor()"
-      [style.borderWidth]="getBorderWidth()"
-      [style.opacity]="getOpacity()"
-      [style.boxShadow]="getBoxShadow()"
+      [style.backgroundColor]="hexColor()"
+      [style.borderColor]="borderColor()"
+      [style.borderWidth]="borderWidth()"
+      [style.opacity]="opacity()"
+      [style.boxShadow]="boxShadow()"
       [class.locked]="isLocked()"
-      [class]="getCellClass()"
+      [class]="cellClass()"
       (click)="cellClicked.emit()"
       role="button"
       tabindex="0"
-      [attr.aria-label]="getAriaLabel()"
-      [attr.title]="getTooltip()"
+      [attr.aria-label]="ariaLabel()"
+      [attr.title]="tooltip()"
     >
       <app-cell-indicator
         [value]="value()"
@@ -34,8 +34,8 @@ import { FormatBytePipe } from '../pipes/format-byte.pipe';
       />
       <span
         class="cell-value"
-        [style.textShadow]="getTextShadow()"
-        [style.color]="getTextColor()"
+        [style.textShadow]="textShadow()"
+        [style.color]="textColor()"
       >
         {{ value() | formatByte:'hex' }}
       </span>
@@ -88,9 +88,16 @@ export class MemoryCellComponent {
   private statsService = inject(StatsService);
 
   /**
+   * Formats the byte value as a hex string (helper method)
+   */
+  private formatValue(): string {
+    return this.value().toString(16).toUpperCase().padStart(2, '0');
+  }
+
+  /**
    * Converts the byte value to a hex color string.
    */
-  getHexColor(): string {
+  protected hexColor = computed(() => {
     this.statsService.recordCalculation();
 
     if (this.isLocked()) {
@@ -102,24 +109,13 @@ export class MemoryCellComponent {
     const g = Math.floor(Math.sin(val * 0.1) * 50 + 100);
     const b = Math.floor((1 - val / 255) * 155 + 100);
 
-    const hue = (val / 255) * 360;
-    const saturation = 60 + (Math.sin(val * 0.05) * 20);
-    const lightness = 40 + (Math.cos(val * 0.08) * 15);
-
     return `rgb(${r}, ${g}, ${b})`;
-  }
-
-  /**
-   * Formats the byte value as a hex string
-   */
-  formatValue(): string {
-    return this.value().toString(16).toUpperCase().padStart(2, '0');
-  }
+  });
 
   /**
    * Gets the border color based on value
    */
-  getBorderColor(): string {
+  protected borderColor = computed(() => {
     this.statsService.recordCalculation();
 
     if (this.isLocked()) {
@@ -129,12 +125,12 @@ export class MemoryCellComponent {
     const val = this.value();
     const intensity = val / 255;
     return intensity > 0.7 ? '#00ffff' : 'rgba(0, 0, 0, 0.1)';
-  }
+  });
 
   /**
    * Gets the border width based on value
    */
-  getBorderWidth(): string {
+  protected borderWidth = computed(() => {
     this.statsService.recordCalculation();
 
     if (this.isLocked()) {
@@ -143,12 +139,12 @@ export class MemoryCellComponent {
 
     const val = this.value();
     return val > 200 ? '2px' : '1px';
-  }
+  });
 
   /**
    * Gets the opacity based on value
    */
-  getOpacity(): number {
+  protected opacity = computed(() => {
     this.statsService.recordCalculation();
 
     if (this.isLocked()) {
@@ -157,12 +153,12 @@ export class MemoryCellComponent {
 
     const val = this.value();
     return 0.7 + (val / 255) * 0.3;
-  }
+  });
 
   /**
    * Gets the box shadow effect
    */
-  getBoxShadow(): string {
+  protected boxShadow = computed(() => {
     this.statsService.recordCalculation();
 
     if (this.isLocked()) {
@@ -174,12 +170,12 @@ export class MemoryCellComponent {
       return '0 0 6px rgba(0, 255, 255, 0.4)';
     }
     return 'none';
-  }
+  });
 
   /**
    * Gets the CSS class based on value range
    */
-  getCellClass(): string {
+  protected cellClass = computed(() => {
     this.statsService.recordCalculation();
 
     const val = this.value();
@@ -191,23 +187,23 @@ export class MemoryCellComponent {
     } else {
       return 'memory-cell low-intensity';
     }
-  }
+  });
 
   /**
    * Gets the text shadow effect
    */
-  getTextShadow(): string {
+  protected textShadow = computed(() => {
     this.statsService.recordCalculation();
 
     const val = this.value();
     const shadowIntensity = val / 255;
     return `0 0 ${2 + shadowIntensity * 2}px rgba(0, 0, 0, ${0.5 + shadowIntensity * 0.3})`;
-  }
+  });
 
   /**
    * Gets the text color for better contrast
    */
-  getTextColor(): string {
+  protected textColor = computed(() => {
     this.statsService.recordCalculation();
 
     if (this.isLocked()) {
@@ -218,12 +214,12 @@ export class MemoryCellComponent {
     return val > 150
       ? 'rgba(255, 255, 255, 0.95)'
       : 'rgba(255, 255, 255, 0.85)';
-  }
+  });
 
   /**
    * Gets the ARIA label for accessibility
    */
-  getAriaLabel(): string {
+  protected ariaLabel = computed(() => {
     this.statsService.recordCalculation();
 
     const hexValue = this.formatValue();
@@ -231,12 +227,12 @@ export class MemoryCellComponent {
     const status = this.isLocked() ? 'locked' : 'unlocked';
 
     return `Memory cell: hex ${hexValue}, decimal ${decValue}, ${status}`;
-  }
+  });
 
   /**
    * Gets the tooltip text
    */
-  getTooltip(): string {
+  protected tooltip = computed(() => {
     this.statsService.recordCalculation();
 
     const hexValue = this.formatValue();
@@ -247,5 +243,5 @@ export class MemoryCellComponent {
     }
 
     return `Hex: 0x${hexValue} | Dec: ${decValue} | Click to lock`;
-  }
+  });
 }
