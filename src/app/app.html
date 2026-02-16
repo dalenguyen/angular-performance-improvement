@@ -1,0 +1,42 @@
+<div class="app-container">
+  <header class="header">
+    <h1 class="title">SHENZHEN MEMORY VISUALIZER</h1>
+    <p class="subtitle">Real-time 4096-byte Memory Grid Visualization</p>
+  </header>
+
+  <div class="status-panel">
+    <div class="stat-box power-draw">
+      <span class="stat-label">POWER DRAW</span>
+      <span class="stat-value">{{ powerDraw() }} <span class="unit">kOps/sec</span></span>
+    </div>
+
+    <div class="control-box">
+      <label for="update-rate" class="control-label">
+        Stream Update Rate: <strong>{{ updateRate() }}ms</strong>
+      </label>
+      <input
+        type="range"
+        id="update-rate"
+        min="10"
+        max="1000"
+        [value]="updateRate()"
+        (input)="onUpdateRateChange(+$any($event.target).value)"
+        class="slider"
+        aria-label="Adjust memory stream update rate"
+      />
+      <div class="slider-labels">
+        <span>10ms (EXTREME)</span>
+        <span>1000ms (SAFE)</span>
+      </div>
+    </div>
+
+    <div class="info-box">
+      <p><strong>Tip:</strong> Click any cell to LOCK it (prevents updates)</p>
+      <p>Locked cells turn RED and ignore stream data</p>
+    </div>
+  </div>
+
+  <main class="main-content">
+    <app-memory-grid />
+  </main>
+</div>
