@@ -1,16 +1,12 @@
-// Reflect metadata polyfill for enhanced decorator support
-import 'reflect-metadata';
-
 import { bootstrapApplication } from '@angular/platform-browser';
-import { enableProfiling } from '@angular/core';
+import { enableProfiling, isDevMode } from '@angular/core';
 import { appConfig } from './app/app.config';
 import { App } from './app/app';
 
-// Enable Angular profiler for change detection tracking
+// Enable Angular profiler only in development mode
 // This emits performance events that can be captured by Chrome DevTools
-if (typeof window !== 'undefined') {
+if (isDevMode()) {
   enableProfiling();
 }
 
-bootstrapApplication(App, appConfig)
-  .catch((err) => console.error(err));
+bootstrapApplication(App, appConfig).catch((err) => console.error(err));
