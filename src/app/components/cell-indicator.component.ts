@@ -1,4 +1,4 @@
-import { Component, input, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, input, inject, computed, ChangeDetectionStrategy } from '@angular/core';
 import { StatsService } from '../services/stats.service';
 
 /**
@@ -11,9 +11,9 @@ import { StatsService } from '../services/stats.service';
   template: `
     <div
       class="indicator"
-      [style.backgroundColor]="getIndicatorColor()"
-      [style.transform]="getIndicatorTransform()"
-      [title]="getIndicatorTooltip()"
+      [style.backgroundColor]="indicatorColor()"
+      [style.transform]="indicatorTransform()"
+      [title]="indicatorTooltip()"
     ></div>
   `,
   styles: [`
@@ -38,7 +38,7 @@ export class CellIndicatorComponent {
   /**
    * Gets the indicator color based on cell value
    */
-  getIndicatorColor(): string {
+  protected indicatorColor = computed(() => {
     this.statsService.recordCalculation();
 
     if (this.isLocked()) {
@@ -53,23 +53,22 @@ export class CellIndicatorComponent {
     } else {
       return '#ff6600';
     }
-  }
+  });
 
   /**
    * Gets the indicator transform effect
    */
-  getIndicatorTransform(): string {
+  protected indicatorTransform = computed(() => {
     this.statsService.recordCalculation();
 
     const val = this.value();
-    const scale = val > 200 ? 'scale(1.5)' : 'scale(1)';
-    return scale;
-  }
+    return val > 200 ? 'scale(1.5)' : 'scale(1)';
+  });
 
   /**
    * Gets the indicator tooltip
    */
-  getIndicatorTooltip(): string {
+  protected indicatorTooltip = computed(() => {
     this.statsService.recordCalculation();
 
     const val = this.value();
@@ -80,5 +79,5 @@ export class CellIndicatorComponent {
     } else {
       return 'Low intensity';
     }
-  }
+  });
 }
