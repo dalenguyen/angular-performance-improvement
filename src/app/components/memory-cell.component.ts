@@ -55,6 +55,8 @@ import { FormatBytePipe } from '../pipes/format-byte.pipe';
       box-sizing: border-box;
       overflow: hidden;
       padding: 2px;
+      contain: layout style paint;
+      content-visibility: auto;
     }
 
     .memory-cell:hover {
