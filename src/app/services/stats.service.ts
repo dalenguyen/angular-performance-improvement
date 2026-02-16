@@ -1,6 +1,5 @@
 import { Injectable, signal } from '@angular/core';
-// Import from rxjs root for convenience (includes all operators)
-import * as rxjs from 'rxjs';
+import { interval, map, Observable } from 'rxjs';
 
 /**
  * Service for tracking computational metrics and system performance.
@@ -14,12 +13,12 @@ export class StatsService {
   private computations = 0;
   private powerDraw = signal(0);
 
-  public readonly powerDraw$: rxjs.Observable<number>;
+  public readonly powerDraw$: Observable<number>;
 
   constructor() {
     // Calculate power draw (kOps/sec) every second
-    this.powerDraw$ = rxjs.interval(1000).pipe(
-      rxjs.map(() => {
+    this.powerDraw$ = interval(1000).pipe(
+      map(() => {
         const opsPerSecond = this.computations;
         const kOpsPerSecond = Math.round(opsPerSecond / 1000);
 

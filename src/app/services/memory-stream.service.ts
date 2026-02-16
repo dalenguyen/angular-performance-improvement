@@ -1,7 +1,5 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, interval, switchMap, map } from 'rxjs';
-// Lodash for data manipulation utilities
-import _ from 'lodash';
 
 /**
  * Configuration for memory visualization
@@ -44,8 +42,7 @@ export class MemoryStreamService {
    * @param ms Update interval in milliseconds (minimum: 10ms)
    */
   setUpdateRate(ms: number): void {
-    // Use lodash for robust number clamping
-    const clampedRate = _.clamp(ms, 10, Infinity);
+    const clampedRate = Math.max(10, Math.min(ms, Infinity));
     this.updateRateMs$.next(clampedRate);
   }
 

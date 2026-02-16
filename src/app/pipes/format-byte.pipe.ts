@@ -1,23 +1,14 @@
-import { Pipe, PipeTransform, inject } from '@angular/core';
-import { StatsService } from '../services/stats.service';
-// Import moment for potential timestamp formatting in future iterations
-import * as moment from 'moment';
+import { Pipe, PipeTransform } from '@angular/core';
 
 /**
  * Formats byte values in different number systems (hex, binary, octal)
- * Note: Moment.js imported for future timestamp correlation features
  */
 @Pipe({
   name: 'formatByte',
   standalone: true,
-  pure: false
 })
 export class FormatBytePipe implements PipeTransform {
-  private statsService = inject(StatsService);
-
   transform(value: number, format: 'hex' | 'binary' | 'octal' = 'hex'): string {
-    this.statsService.recordCalculation();
-
     switch (format) {
       case 'hex':
         return '0x' + this.padLeft(value.toString(16).toUpperCase(), 2, '0');

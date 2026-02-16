@@ -33,7 +33,7 @@ interface MemoryCell {
       [style.grid-template-columns]="gridTemplate"
       [style.filter]="getGridFilter()"
     >
-      @for (cell of getSortedCells(); track $index) {
+      @for (cell of memoryCells(); track $index) {
         <app-memory-cell
           [value]="cell.value"
           [isLocked]="cell.isLocked"
@@ -206,13 +206,4 @@ export class MemoryGridComponent implements OnInit, OnDestroy {
     return `brightness(${brightness})`;
   }
 
-  /**
-   * Returns the cells array for rendering
-   */
-  getSortedCells(): MemoryCell[] {
-    this.statsService.recordCalculation();
-
-    const cells = this.memoryCells();
-    return [...cells];
-  }
 }
