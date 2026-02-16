@@ -1,9 +1,9 @@
-import { Component, signal, computed, inject, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, computed, inject, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { MemoryCellComponent } from './memory-cell.component';
 import { MemoryStreamService, MEMORY_CONFIG } from '../services/memory-stream.service';
 import { StatsService } from '../services/stats.service';
-import { Subscription } from 'rxjs';
 
 /**
  * Represents a memory cell with its value and locked state
@@ -97,10 +97,9 @@ interface MemoryCell {
     }
   `]
 })
-export class MemoryGridComponent implements OnInit, OnDestroy {
+export class MemoryGridComponent {
   private memoryStreamService = inject(MemoryStreamService);
   private statsService = inject(StatsService);
-  private subscription?: Subscription;
 
   memoryCells = signal<MemoryCell[]>(
     Array.from({ length: MEMORY_CONFIG.TOTAL_BYTES }, () => ({
@@ -111,14 +110,10 @@ export class MemoryGridComponent implements OnInit, OnDestroy {
 
   gridTemplate = `repeat(${MEMORY_CONFIG.GRID_SIZE}, minmax(0, 1fr))`;
 
-  ngOnInit(): void {
-    this.subscription = this.memoryStreamService.memoryStream$.subscribe(data => {
-      this.updateMemory(data);
-    });
-  }
-
-  ngOnDestroy(): void {
-    this.subscription?.unsubscribe();
+  constructor() {
+    this.memoryStreamService.memoryStream$
+      .pipe(takeUntilDestroyed())
+      .subscribe(data => this.updateMemory(data));
   }
 
   /**
@@ -126,13 +121,12 @@ export class MemoryGridComponent implements OnInit, OnDestroy {
    * Locked cells are not updated.
    */
   private updateMemory(data: number[]): void {
-    const currentCells = this.memoryCells();
-    const newCells = data.map((value, index) => ({
-      value: currentCells[index].isLocked ? currentCells[index].value : value,
-      isLocked: currentCells[index].isLocked
-    }));
-
-    this.memoryCells.set(newCells);
+    this.memoryCells.update(currentCells =>
+      data.map((value, index) => ({
+        value: currentCells[index].isLocked ? currentCells[index].value : value,
+        isLocked: currentCells[index].isLocked
+      }))
+    );
   }
 
   /**
