@@ -1,4 +1,4 @@
-import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, inject, ChangeDetectionStrategy, isDevMode } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -9,14 +9,10 @@ import { PerformanceMonitorService } from './services/performance-monitor.servic
 
 @Component({
   selector: 'app-root',
-  imports: [
-    CommonModule,
-    FormsModule,
-    MemoryGridComponent
-  ],
+  imports: [CommonModule, FormsModule, MemoryGridComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
 })
 export class App {
   private memoryStreamService = inject(MemoryStreamService);
@@ -29,14 +25,12 @@ export class App {
 
   constructor() {
     // Subscribe to power draw updates
-    this.statsService.powerDraw$
-      .pipe(takeUntilDestroyed())
-      .subscribe(kOps => {
-        this.powerDraw.set(kOps);
-      });
+    this.statsService.powerDraw$.pipe(takeUntilDestroyed()).subscribe((kOps) => {
+      this.powerDraw.set(kOps);
+    });
 
-    // Expose performance monitor for testing
-    if (typeof window !== 'undefined') {
+    // Expose performance monitor for testing in development mode
+    if (typeof window !== 'undefined' && isDevMode()) {
       (window as any).performanceMonitor = this.performanceMonitor;
     }
   }
