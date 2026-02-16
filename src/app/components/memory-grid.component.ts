@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
+import { Component, signal, computed, inject, OnInit, OnDestroy, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MemoryCellComponent } from './memory-cell.component';
 import { MemoryStreamService, MEMORY_CONFIG } from '../services/memory-stream.service';
@@ -23,15 +23,15 @@ interface MemoryCell {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="grid-stats">
-      <div class="stat">Average Value: {{ getAverageValue() }}</div>
-      <div class="stat">Max Value: {{ getMaxValue() }}</div>
-      <div class="stat">Locked Cells: {{ getLockedCount() }}</div>
-      <div class="stat">Grid Health: {{ getGridHealth() }}%</div>
+      <div class="stat">Average Value: {{ averageValue() }}</div>
+      <div class="stat">Max Value: {{ maxValue() }}</div>
+      <div class="stat">Locked Cells: {{ lockedCount() }}</div>
+      <div class="stat">Grid Health: {{ gridHealth() }}%</div>
     </div>
     <div
       class="grid-container"
       [style.grid-template-columns]="gridTemplate"
-      [style.filter]="getGridFilter()"
+      [style.filter]="gridFilter()"
     >
       @for (cell of memoryCells(); track $index) {
         <app-memory-cell
@@ -153,57 +153,57 @@ export class MemoryGridComponent implements OnInit, OnDestroy {
   /**
    * Calculates the average value of all cells
    */
-  getAverageValue(): number {
+  protected averageValue = computed(() => {
     this.statsService.recordCalculation();
 
     const cells = this.memoryCells();
     const sum = cells.reduce((acc, cell) => acc + cell.value, 0);
     return Math.round(sum / cells.length);
-  }
+  });
 
   /**
    * Finds the maximum value across all cells
    */
-  getMaxValue(): number {
+  protected maxValue = computed(() => {
     this.statsService.recordCalculation();
 
     const cells = this.memoryCells();
     return Math.max(...cells.map(c => c.value));
-  }
+  });
 
   /**
    * Counts the number of locked cells
    */
-  getLockedCount(): number {
+  protected lockedCount = computed(() => {
     this.statsService.recordCalculation();
 
     const cells = this.memoryCells();
     return cells.filter(c => c.isLocked).length;
-  }
+  });
 
   /**
    * Calculates grid health metric
    */
-  getGridHealth(): number {
+  protected gridHealth = computed(() => {
     this.statsService.recordCalculation();
 
     const cells = this.memoryCells();
-    const avgValue = cells.reduce((acc, cell) => acc + cell.value, 0) / cells.length;
-    const lockedRatio = cells.filter(c => c.isLocked).length / cells.length;
+    const avgValue = this.averageValue(); // Reuse cached value
+    const lockedRatio = this.lockedCount() / cells.length;
 
     return Math.round((avgValue / 255) * 50 + (1 - lockedRatio) * 50);
-  }
+  });
 
   /**
    * Calculates CSS filter for grid brightness
    */
-  getGridFilter(): string {
+  protected gridFilter = computed(() => {
     this.statsService.recordCalculation();
 
-    const avgValue = this.getAverageValue();
+    const avgValue = this.averageValue(); // Reuse cached value
     const brightness = 0.9 + (avgValue / 255) * 0.2;
 
     return `brightness(${brightness})`;
-  }
+  });
 
 }
