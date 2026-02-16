@@ -108,9 +108,33 @@ export class MemoryGridComponent {
     }))
   );
 
+  /**
+   * Running statistics for O(1) access in computed signals.
+   * Updated incrementally to avoid O(n) recalculations.
+   */
+  private stats = signal({
+    sum: 0,
+    max: 0,
+    lockedCount: 0
+  });
+
   gridTemplate = `repeat(${MEMORY_CONFIG.GRID_SIZE}, minmax(0, 1fr))`;
 
   constructor() {
+    // Calculate initial statistics once - O(n)
+    const initialCells = this.memoryCells();
+    let sum = 0;
+    let max = 0;
+    let lockedCount = 0;
+
+    for (let i = 0; i < initialCells.length; i++) {
+      sum += initialCells[i].value;
+      max = Math.max(max, initialCells[i].value);
+      if (initialCells[i].isLocked) lockedCount++;
+    }
+
+    this.stats.set({ sum, max, lockedCount });
+
     this.memoryStreamService.memoryStream$
       .pipe(takeUntilDestroyed())
       .subscribe(data => this.updateMemory(data));
@@ -119,16 +143,52 @@ export class MemoryGridComponent {
   /**
    * Updates memory cells with new data from the stream.
    * Locked cells are not updated.
-   * Optimized: Only creates new cell objects for cells that actually changed.
+   * Optimized: Updates stats incrementally - O(k) where k = changed cells.
    */
   private updateMemory(data: number[]): void {
     this.memoryCells.update(currentCells => {
       const newCells = currentCells.slice();
+      let sumDelta = 0;
+      let needsMaxRecalc = false;
+      const currentStats = this.stats();
+
       for (let i = 0; i < data.length; i++) {
         if (!currentCells[i].isLocked && currentCells[i].value !== data[i]) {
-          newCells[i] = { value: data[i], isLocked: false };
+          const oldValue = currentCells[i].value;
+          const newValue = data[i];
+
+          // Update sum incrementally
+          sumDelta += newValue - oldValue;
+
+          // Check if we need to recalculate max
+          if (oldValue === currentStats.max && newValue < oldValue) {
+            needsMaxRecalc = true;
+          }
+
+          newCells[i] = { value: newValue, isLocked: false };
         }
       }
+
+      // Update stats incrementally - O(k) for max check, O(n) only if max was removed
+      let newMax = currentStats.max;
+      if (needsMaxRecalc) {
+        // Full recalc needed only when current max value was removed
+        newMax = newCells.reduce((max, cell) => Math.max(max, cell.value), 0);
+      } else {
+        // Just check if any new values exceed current max - O(k)
+        for (let i = 0; i < data.length; i++) {
+          if (!currentCells[i].isLocked && currentCells[i].value !== data[i]) {
+            newMax = Math.max(newMax, data[i]);
+          }
+        }
+      }
+
+      this.stats.update(s => ({
+        sum: s.sum + sumDelta,
+        max: newMax,
+        lockedCount: s.lockedCount
+      }));
+
       return newCells;
     });
   }
@@ -136,72 +196,80 @@ export class MemoryGridComponent {
   /**
    * Toggles the locked state of a memory cell.
    * Locked cells ignore stream updates and turn red.
-   * Optimized: Uses slice() for better performance than spread operator.
+   * Optimized: Updates locked count incrementally - O(1).
    */
   toggleLock(index: number): void {
     this.memoryCells.update(cells => {
       const newCells = cells.slice();
+      const wasLocked = cells[index].isLocked;
+
       newCells[index] = {
         ...cells[index],
-        isLocked: !cells[index].isLocked
+        isLocked: !wasLocked
       };
+
+      // Update locked count incrementally - O(1)
+      this.stats.update(s => ({
+        ...s,
+        lockedCount: s.lockedCount + (wasLocked ? -1 : 1)
+      }));
+
       return newCells;
     });
   }
 
   /**
    * Calculates the average value of all cells
+   * Optimized: Uses cached sum - O(1) instead of O(n)
    */
   protected averageValue = computed(() => {
     this.statsService.recordCalculation();
 
-    const cells = this.memoryCells();
-    const sum = cells.reduce((acc, cell) => acc + cell.value, 0);
-    return Math.round(sum / cells.length);
+    const stats = this.stats();
+    return Math.round(stats.sum / MEMORY_CONFIG.TOTAL_BYTES);
   });
 
   /**
    * Finds the maximum value across all cells
-   * Optimized: Uses reduce to avoid spread operator and intermediate array
+   * Optimized: Uses cached max - O(1) instead of O(n)
    */
   protected maxValue = computed(() => {
     this.statsService.recordCalculation();
 
-    const cells = this.memoryCells();
-    return cells.reduce((max, cell) => Math.max(max, cell.value), 0);
+    return this.stats().max;
   });
 
   /**
    * Counts the number of locked cells
-   * Optimized: Uses reduce to avoid intermediate filtered array
+   * Optimized: Uses cached count - O(1) instead of O(n)
    */
   protected lockedCount = computed(() => {
     this.statsService.recordCalculation();
 
-    const cells = this.memoryCells();
-    return cells.reduce((count, cell) => count + (cell.isLocked ? 1 : 0), 0);
+    return this.stats().lockedCount;
   });
 
   /**
    * Calculates grid health metric
+   * Optimized: Uses cached computed values - O(1)
    */
   protected gridHealth = computed(() => {
     this.statsService.recordCalculation();
 
-    const cells = this.memoryCells();
-    const avgValue = this.averageValue(); // Reuse cached value
-    const lockedRatio = this.lockedCount() / cells.length;
+    const avgValue = this.averageValue(); // O(1) - cached
+    const lockedRatio = this.lockedCount() / MEMORY_CONFIG.TOTAL_BYTES; // O(1) - cached
 
     return Math.round((avgValue / 255) * 50 + (1 - lockedRatio) * 50);
   });
 
   /**
    * Calculates CSS filter for grid brightness
+   * Optimized: Uses cached computed value - O(1)
    */
   protected gridFilter = computed(() => {
     this.statsService.recordCalculation();
 
-    const avgValue = this.averageValue(); // Reuse cached value
+    const avgValue = this.averageValue(); // O(1) - cached
     const brightness = 0.9 + (avgValue / 255) * 0.2;
 
     return `brightness(${brightness})`;
