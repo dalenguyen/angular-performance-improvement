@@ -1,4 +1,5 @@
 import { Component, signal, inject, ChangeDetectionStrategy } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 // Angular Material imports for future UI enhancements
@@ -40,9 +41,11 @@ export class App {
 
   constructor() {
     // Subscribe to power draw updates
-    this.statsService.powerDraw$.subscribe(kOps => {
-      this.powerDraw.set(kOps);
-    });
+    this.statsService.powerDraw$
+      .pipe(takeUntilDestroyed())
+      .subscribe(kOps => {
+        this.powerDraw.set(kOps);
+      });
 
     // Expose performance monitor for testing
     if (typeof window !== 'undefined') {
@@ -51,9 +54,10 @@ export class App {
   }
 
   /**
-   * Updates the memory stream refresh rate
+   * Updates the memory stream refresh rate from input event
    */
-  onUpdateRateChange(value: number): void {
+  onUpdateRateChange(event: Event): void {
+    const value = +(event.target as HTMLInputElement).value;
     this.updateRate.set(value);
     this.memoryStreamService.setUpdateRate(value);
   }

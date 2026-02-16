@@ -6,7 +6,6 @@ import { StatsService } from '../services/stats.service';
  */
 @Pipe({
   name: 'formatByte',
-  standalone: true,
 })
 export class FormatBytePipe implements PipeTransform {
   private statsService = inject(StatsService);
