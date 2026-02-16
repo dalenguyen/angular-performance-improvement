@@ -1,4 +1,5 @@
-import { Pipe, PipeTransform } from '@angular/core';
+import { Pipe, PipeTransform, inject } from '@angular/core';
+import { StatsService } from '../services/stats.service';
 
 /**
  * Formats byte values in different number systems (hex, binary, octal)
@@ -8,7 +9,11 @@ import { Pipe, PipeTransform } from '@angular/core';
   standalone: true,
 })
 export class FormatBytePipe implements PipeTransform {
+  private statsService = inject(StatsService);
+
   transform(value: number, format: 'hex' | 'binary' | 'octal' = 'hex'): string {
+    this.statsService.recordCalculation();
+
     switch (format) {
       case 'hex':
         return '0x' + this.padLeft(value.toString(16).toUpperCase(), 2, '0');
