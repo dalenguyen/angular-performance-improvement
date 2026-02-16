@@ -119,26 +119,31 @@ export class MemoryGridComponent {
   /**
    * Updates memory cells with new data from the stream.
    * Locked cells are not updated.
+   * Optimized: Only creates new cell objects for cells that actually changed.
    */
   private updateMemory(data: number[]): void {
-    this.memoryCells.update(currentCells =>
-      data.map((value, index) => ({
-        value: currentCells[index].isLocked ? currentCells[index].value : value,
-        isLocked: currentCells[index].isLocked
-      }))
-    );
+    this.memoryCells.update(currentCells => {
+      const newCells = currentCells.slice();
+      for (let i = 0; i < data.length; i++) {
+        if (!currentCells[i].isLocked && currentCells[i].value !== data[i]) {
+          newCells[i] = { value: data[i], isLocked: false };
+        }
+      }
+      return newCells;
+    });
   }
 
   /**
    * Toggles the locked state of a memory cell.
    * Locked cells ignore stream updates and turn red.
+   * Optimized: Uses slice() for better performance than spread operator.
    */
   toggleLock(index: number): void {
     this.memoryCells.update(cells => {
-      const newCells = [...cells];
+      const newCells = cells.slice();
       newCells[index] = {
-        ...newCells[index],
-        isLocked: !newCells[index].isLocked
+        ...cells[index],
+        isLocked: !cells[index].isLocked
       };
       return newCells;
     });
@@ -157,22 +162,24 @@ export class MemoryGridComponent {
 
   /**
    * Finds the maximum value across all cells
+   * Optimized: Uses reduce to avoid spread operator and intermediate array
    */
   protected maxValue = computed(() => {
     this.statsService.recordCalculation();
 
     const cells = this.memoryCells();
-    return Math.max(...cells.map(c => c.value));
+    return cells.reduce((max, cell) => Math.max(max, cell.value), 0);
   });
 
   /**
    * Counts the number of locked cells
+   * Optimized: Uses reduce to avoid intermediate filtered array
    */
   protected lockedCount = computed(() => {
     this.statsService.recordCalculation();
 
     const cells = this.memoryCells();
-    return cells.filter(c => c.isLocked).length;
+    return cells.reduce((count, cell) => count + (cell.isLocked ? 1 : 0), 0);
   });
 
   /**
