@@ -35,83 +35,85 @@ import { StatsService } from '../services/stats.service';
         (mousemove)="onMouseMove($event)"
         (mouseleave)="onMouseLeave()"
         role="grid"
-        [attr.aria-label]="'Memory grid ' + GRID_SIZE + 'x' + GRID_SIZE + ', ' + lockedCount() + ' locked'"
+        [attr.aria-label]="
+          'Memory grid ' + GRID_SIZE + 'x' + GRID_SIZE + ', ' + lockedCount() + ' locked'
+        "
       ></canvas>
       @if (tooltipVisible()) {
-        <div
-          class="cell-tooltip"
-          [style.left.px]="tooltipX()"
-          [style.top.px]="tooltipY()"
-        >{{ tooltipContent() }}</div>
+        <div class="cell-tooltip" [style.left.px]="tooltipX()" [style.top.px]="tooltipY()">
+          {{ tooltipContent() }}
+        </div>
       }
     </div>
   `,
-  styles: [`
-    :host {
-      display: block;
-      width: 100%;
-      max-width: 100%;
-      box-sizing: border-box;
-    }
-
-    .grid-stats {
-      display: flex;
-      gap: 1rem;
-      margin-bottom: 1rem;
-      padding: 0.5rem;
-      background: rgba(0, 0, 0, 0.3);
-      border: 1px solid #00ffff;
-      border-radius: 4px;
-      font-size: 0.875rem;
-      color: #00ffff;
-      max-width: 100%;
-      box-sizing: border-box;
-    }
-
-    .stat {
-      flex: 1;
-      text-align: center;
-      min-width: 0;
-    }
-
-    .canvas-wrapper {
-      position: relative;
-      width: 100%;
-    }
-
-    .grid-canvas {
-      display: block;
-      width: 100%;
-      aspect-ratio: 1;
-      cursor: pointer;
-      border: 2px solid #00ffff;
-      box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
-      image-rendering: pixelated;
-    }
-
-    .cell-tooltip {
-      position: absolute;
-      background: rgba(0, 0, 0, 0.85);
-      color: #00ffff;
-      border: 1px solid #00ffff;
-      border-radius: 4px;
-      padding: 4px 8px;
-      font-size: 0.7rem;
-      font-family: 'Courier New', monospace;
-      pointer-events: none;
-      white-space: nowrap;
-      z-index: 100;
-      transform: translate(10px, -100%);
-    }
-
-    @media (max-width: 768px) {
-      .grid-stats {
-        flex-direction: column;
-        gap: 0.5rem;
-        font-size: 0.75rem;
+  styles: [
+    `
+      :host {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
       }
-    }
-  `]
+
+      .grid-stats {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        background: rgba(0, 0, 0, 0.3);
+        border: 1px solid #00ffff;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        color: #00ffff;
+        max-width: 100%;
+        box-sizing: border-box;
+      }
+
+      .stat {
+        flex: 1;
+        text-align: center;
+        min-width: 0;
+      }
+
+      .canvas-wrapper {
+        position: relative;
+        width: 100%;
+      }
+
+      .grid-canvas {
+        display: block;
+        width: 100%;
+        aspect-ratio: 1;
+        cursor: pointer;
+        border: 2px solid #00ffff;
+        box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+        image-rendering: pixelated;
+      }
+
+      .cell-tooltip {
+        position: absolute;
+        background: rgba(0, 0, 0, 0.85);
+        color: #00ffff;
+        border: 1px solid #00ffff;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 0.7rem;
+        font-family: 'Courier New', monospace;
+        pointer-events: none;
+        white-space: nowrap;
+        z-index: 100;
+        transform: translate(10px, -100%);
+      }
+
+      @media (max-width: 768px) {
+        .grid-stats {
+          flex-direction: column;
+          gap: 0.5rem;
+          font-size: 0.75rem;
+        }
+      }
+    `,
+  ],
 })
 export class MemoryGridComponent implements AfterViewInit {
   @ViewChild('gridCanvas') private canvasRef!: ElementRef<HTMLCanvasElement>;
@@ -154,7 +156,7 @@ export class MemoryGridComponent implements AfterViewInit {
   constructor() {
     this.memoryStreamService.memoryStream$
       .pipe(takeUntilDestroyed())
-      .subscribe(data => this.updateMemory(data));
+      .subscribe((data) => this.updateMemory(data));
   }
 
   ngAfterViewInit(): void {
@@ -188,6 +190,7 @@ export class MemoryGridComponent implements AfterViewInit {
   }
 
   private drawCell(index: number): void {
+    this.statsService.recordCalculation();
     const col = index % MEMORY_CONFIG.GRID_SIZE;
     const row = Math.floor(index / MEMORY_CONFIG.GRID_SIZE);
     const x = col * this.cellSize;
@@ -220,7 +223,12 @@ export class MemoryGridComponent implements AfterViewInit {
     if (!this.ctx) return;
     // Black background gives the 1px gap effect between cells
     this.ctx.fillStyle = '#000';
-    this.ctx.fillRect(0, 0, this.canvasRef.nativeElement.width, this.canvasRef.nativeElement.height);
+    this.ctx.fillRect(
+      0,
+      0,
+      this.canvasRef.nativeElement.width,
+      this.canvasRef.nativeElement.height,
+    );
     for (let i = 0; i < MEMORY_CONFIG.TOTAL_BYTES; i++) {
       this.drawCell(i);
     }
@@ -270,7 +278,7 @@ export class MemoryGridComponent implements AfterViewInit {
     }
 
     if (sumDelta !== 0 || newMax !== currentStats.max) {
-      this.stats.update(s => ({ ...s, sum: s.sum + sumDelta, max: newMax }));
+      this.stats.update((s) => ({ ...s, sum: s.sum + sumDelta, max: newMax }));
     }
 
     this.scheduleDraw();
@@ -282,7 +290,7 @@ export class MemoryGridComponent implements AfterViewInit {
     const col = Math.floor((event.clientX - rect.left) / this.cellSize);
     const row = Math.floor((event.clientY - rect.top) / this.cellSize);
     const index = row * MEMORY_CONFIG.GRID_SIZE + col;
-    const newHovered = (index >= 0 && index < MEMORY_CONFIG.TOTAL_BYTES) ? index : -1;
+    const newHovered = index >= 0 && index < MEMORY_CONFIG.TOTAL_BYTES ? index : -1;
 
     if (newHovered === this.hoveredIndex) return;
 
@@ -332,9 +340,9 @@ export class MemoryGridComponent implements AfterViewInit {
     const wasLocked = this.locked[index];
     this.locked[index] = !wasLocked;
 
-    this.stats.update(s => ({
+    this.stats.update((s) => ({
       ...s,
-      lockedCount: s.lockedCount + (wasLocked ? -1 : 1)
+      lockedCount: s.lockedCount + (wasLocked ? -1 : 1),
     }));
 
     this.dirtyIndices.add(index);
