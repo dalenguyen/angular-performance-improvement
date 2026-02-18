@@ -23,64 +23,60 @@ import { FormatBytePipe } from '../pipes/format-byte.pipe';
       [class.locked]="isLocked()"
       [class]="cellClass()"
       (click)="cellClicked.emit()"
+      (mouseenter)="onHoverStart($event)"
+      (mouseleave)="onHoverEnd($event)"
       role="button"
       tabindex="0"
       [attr.aria-label]="ariaLabel()"
       [attr.title]="tooltip()"
     >
-      <app-cell-indicator
-        [value]="value()"
-        [isLocked]="isLocked()"
-      />
-      <span
-        class="cell-value"
-        [style.textShadow]="textShadow()"
-        [style.color]="textColor()"
-      >
-        {{ value() | formatByte:'hex' }}
+      <app-cell-indicator [value]="value()" [isLocked]="isLocked()" />
+      <span class="cell-value" [style.textShadow]="textShadow()" [style.color]="textColor()">
+        {{ value() | formatByte: 'hex' }}
       </span>
     </div>
   `,
-  styles: [`
-    .memory-cell {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: transform 0.1s ease;
-      border: 1px solid rgba(0, 0, 0, 0.1);
-      position: relative;
-      box-sizing: border-box;
-      overflow: hidden;
-      padding: 2px;
-      contain: layout style paint;
-      content-visibility: auto;
-    }
+  styles: [
+    `
+      .memory-cell {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        position: relative;
+        box-sizing: border-box;
+        overflow: hidden;
+        padding: 2px;
+        contain: layout style;
+        background-color: rgb(50, 100, 255);
+      }
 
-    .memory-cell:hover {
-      transform: scale(1.1);
-      z-index: 10;
-      border: 1px solid #00ffff;
-      box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
-    }
+      .memory-cell:hover {
+        transform: scale(1.1);
+        z-index: 10;
+        border: 1px solid #00ffff;
+        box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+      }
 
-    .memory-cell.locked {
-      background-color: #ff0000 !important;
-      border: 2px solid #ff6666;
-    }
+      .memory-cell.locked {
+        background-color: #ff0000 !important;
+        border: 2px solid #ff6666;
+      }
 
-    .cell-value {
-      font-size: clamp(0.4rem, 0.5vw, 0.7rem);
-      font-weight: 600;
-      color: rgba(255, 255, 255, 0.9);
-      text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
-      font-family: 'Courier New', monospace;
-      white-space: nowrap;
-      line-height: 1;
-    }
-  `]
+      .cell-value {
+        font-size: clamp(0.4rem, 0.5vw, 0.7rem);
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.9);
+        text-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+        font-family: 'Courier New', monospace;
+        white-space: nowrap;
+        line-height: 1;
+      }
+    `,
+  ],
 })
 export class MemoryCellComponent {
   value = input.required<number>();
@@ -88,6 +84,22 @@ export class MemoryCellComponent {
   cellClicked = output<void>();
 
   private statsService = inject(StatsService);
+
+  /** Promote only the hovered cell to a GPU layer. Avoids pre-promoting all 4,096 cells. */
+  onHoverStart(event: MouseEvent): void {
+    const el = event.currentTarget as HTMLElement;
+    el.style.willChange = 'transform';
+    el.style.transition = 'transform 0.1s ease';
+  }
+
+  /** Remove GPU layer promotion after the scale-out transition completes. */
+  onHoverEnd(event: MouseEvent): void {
+    const el = event.currentTarget as HTMLElement;
+    el.addEventListener('transitionend', () => {
+      el.style.willChange = 'auto';
+      el.style.transition = '';
+    }, { once: true });
+  }
 
   /**
    * Formats the byte value as a hex string (helper method)
@@ -213,9 +225,7 @@ export class MemoryCellComponent {
     }
 
     const val = this.value();
-    return val > 150
-      ? 'rgba(255, 255, 255, 0.95)'
-      : 'rgba(255, 255, 255, 0.85)';
+    return val > 150 ? 'rgba(255, 255, 255, 0.95)' : 'rgba(255, 255, 255, 0.85)';
   });
 
   /**
@@ -247,3 +257,4 @@ export class MemoryCellComponent {
     return `Hex: 0x${hexValue} | Dec: ${decValue} | Click to lock`;
   });
 }
+
